@@ -1,19 +1,23 @@
-import { useState, useRef } from "react";
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { Link, Navigate } from "react-router-dom";
-import { FileText, Upload, ArrowLeft, Download, Target, CheckCircle, AlertCircle, Info } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Upload, FileText, Download, ArrowLeft, CheckCircle, AlertCircle, XCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import jsPDF from 'jspdf';
 
 const ResumeAnalyzer = () => {
   const { user, loading } = useAuth();
-  const [file, setFile] = useState<File | null>(null);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<any>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState<any>(null);
 
   if (loading) {
     return <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
@@ -25,15 +29,12 @@ const ResumeAnalyzer = () => {
     return <Navigate to="/login" replace />;
   }
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      if (selectedFile.type === "application/pdf" || selectedFile.name.endsWith('.pdf')) {
-        setFile(selectedFile);
-        toast({
-          title: "File Selected",
-          description: `${selectedFile.name} is ready for analysis.`,
-        });
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+        setSelectedFile(file);
+        setAnalysis(null);
       } else {
         toast({
           title: "Invalid File Type",
@@ -44,281 +45,411 @@ const ResumeAnalyzer = () => {
     }
   };
 
-  const handleAnalyze = () => {
-    if (!file) return;
-    
+  const generateDetailedAnalysis = (fileName: string) => {
+    // Enhanced analysis with more comprehensive suggestions
+    const scores = {
+      overall: Math.floor(Math.random() * 30) + 70,
+      formatting: Math.floor(Math.random() * 20) + 80,
+      content: Math.floor(Math.random() * 25) + 65,
+      keywords: Math.floor(Math.random() * 35) + 55,
+      structure: Math.floor(Math.random() * 20) + 75,
+      ats_compatibility: Math.floor(Math.random() * 25) + 70
+    };
+
+    const suggestions = [
+      {
+        category: "Content Enhancement",
+        type: "high",
+        items: [
+          "Add quantified achievements (e.g., 'Increased sales by 25%' instead of 'Improved sales')",
+          "Include 2-3 key accomplishments for each role with specific metrics",
+          "Strengthen your professional summary with industry-specific keywords",
+          "Add relevant certifications or professional development courses"
+        ]
+      },
+      {
+        category: "Keyword Optimization",
+        type: "high",
+        items: [
+          "Include more industry-specific technical skills",
+          "Add relevant software/tools mentioned in job descriptions",
+          "Incorporate action verbs like 'implemented', 'developed', 'optimized'",
+          "Include soft skills that are in demand: 'collaboration', 'problem-solving'"
+        ]
+      },
+      {
+        category: "Format & Structure",
+        type: "medium",
+        items: [
+          "Ensure consistent date formatting throughout the resume",
+          "Use bullet points for better readability",
+          "Maintain consistent font sizes and spacing",
+          "Keep resume to 1-2 pages maximum"
+        ]
+      },
+      {
+        category: "ATS Optimization",
+        type: "high",
+        items: [
+          "Use standard section headers (Experience, Education, Skills)",
+          "Avoid using images, graphics, or complex formatting",
+          "Save as both .pdf and .docx formats",
+          "Include a skills section with exact keyword matches from job posts"
+        ]
+      },
+      {
+        category: "Professional Polish",
+        type: "low",
+        items: [
+          "Add a LinkedIn profile URL",
+          "Include a professional email address",
+          "Consider adding relevant volunteer work or projects",
+          "Proofread for grammar and spelling errors"
+        ]
+      }
+    ];
+
+    const keywordAnalysis = {
+      found: ["JavaScript", "React", "Node.js", "Project Management", "Team Leadership"],
+      missing: ["Python", "AWS", "Docker", "Agile", "Scrum", "Data Analysis"],
+      recommended: ["Cloud Computing", "DevOps", "Machine Learning", "API Development"]
+    };
+
+    return {
+      fileName,
+      scores,
+      suggestions,
+      keywordAnalysis,
+      overallFeedback: `Your resume shows strong ${scores.formatting > 80 ? 'formatting' : 'content'} but could benefit from ${scores.keywords < 70 ? 'keyword optimization' : 'content enhancement'}. Focus on quantifying achievements and including more industry-specific terms.`
+    };
+  };
+
+  const handleAnalyze = async () => {
+    if (!selectedFile) return;
+
     setAnalyzing(true);
-    // Simulate analysis
+    
+    // Simulate analysis process
     setTimeout(() => {
-      setAnalysisResult({
-        score: 87,
-        strengths: [
-          "Strong technical skills section",
-          "Relevant work experience",
-          "Clear and concise formatting",
-          "Good use of action verbs"
-        ],
-        improvements: [
-          "Add more quantifiable achievements",
-          "Include a professional summary",
-          "Consider adding relevant certifications",
-          "Optimize for ATS systems"
-        ],
-        sections: {
-          contact: { score: 95, feedback: "Complete and professional" },
-          summary: { score: 70, feedback: "Could be more compelling" },
-          experience: { score: 90, feedback: "Well-structured with good details" },
-          education: { score: 85, feedback: "Relevant and properly formatted" },
-          skills: { score: 88, feedback: "Good technical coverage" }
-        }
-      });
+      const analysisResult = generateDetailedAnalysis(selectedFile.name);
+      setAnalysis(analysisResult);
       setAnalyzing(false);
+      
       toast({
-        title: "Analysis Complete!",
-        description: "Your resume has been analyzed successfully.",
+        title: "Analysis Complete",
+        description: `Your resume has been analyzed with a score of ${analysisResult.scores.overall}/100.`,
       });
     }, 3000);
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
+  const downloadAnalysisReport = () => {
+    if (!analysis) return;
+
+    const pdf = new jsPDF();
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const margin = 20;
+    let yPosition = margin;
+
+    // Helper function to add text
+    const addText = (text: string, x: number, y: number, fontSize = 12, style = 'normal') => {
+      pdf.setFontSize(fontSize);
+      pdf.setFont(undefined, style);
+      const lines = pdf.splitTextToSize(text, pageWidth - 2 * margin);
+      pdf.text(lines, x, y);
+      return y + (lines.length * fontSize * 0.35) + 5;
+    };
+
+    // Title
+    yPosition = addText('Resume Analysis Report', margin, yPosition, 20, 'bold');
+    yPosition = addText(`File: ${analysis.fileName}`, margin, yPosition + 5, 12);
+    yPosition = addText(`Analysis Date: ${new Date().toLocaleDateString()}`, margin, yPosition, 12);
+    yPosition += 10;
+
+    // Overall Score
+    yPosition = addText('Overall Score', margin, yPosition, 16, 'bold');
+    yPosition = addText(`${analysis.scores.overall}/100`, margin, yPosition, 14);
+    yPosition += 10;
+
+    // Detailed Scores
+    yPosition = addText('Detailed Breakdown', margin, yPosition, 16, 'bold');
+    Object.entries(analysis.scores).forEach(([key, value]) => {
+      if (key !== 'overall') {
+        const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        yPosition = addText(`${label}: ${value}/100`, margin + 10, yPosition, 12);
+      }
+    });
+    yPosition += 10;
+
+    // Suggestions
+    yPosition = addText('Improvement Suggestions', margin, yPosition, 16, 'bold');
+    analysis.suggestions.forEach((category: any) => {
+      if (yPosition > 250) {
+        pdf.addPage();
+        yPosition = margin;
+      }
+      
+      yPosition = addText(`${category.category} (${category.type.toUpperCase()} PRIORITY)`, margin, yPosition, 14, 'bold');
+      category.items.forEach((item: string) => {
+        yPosition = addText(`• ${item}`, margin + 10, yPosition, 10);
+      });
+      yPosition += 5;
+    });
+
+    // Keywords
+    if (yPosition > 200) {
+      pdf.addPage();
+      yPosition = margin;
+    }
+    
+    yPosition = addText('Keyword Analysis', margin, yPosition, 16, 'bold');
+    yPosition = addText('Found Keywords:', margin, yPosition, 12, 'bold');
+    yPosition = addText(analysis.keywordAnalysis.found.join(', '), margin + 10, yPosition, 10);
+    yPosition += 5;
+    
+    yPosition = addText('Missing Keywords:', margin, yPosition, 12, 'bold');
+    yPosition = addText(analysis.keywordAnalysis.missing.join(', '), margin + 10, yPosition, 10);
+    yPosition += 5;
+    
+    yPosition = addText('Recommended Keywords:', margin, yPosition, 12, 'bold');
+    yPosition = addText(analysis.keywordAnalysis.recommended.join(', '), margin + 10, yPosition, 10);
+
+    pdf.save(`resume-analysis-${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile && droppedFile.type === "application/pdf") {
-      setFile(droppedFile);
-      toast({
-        title: "File Dropped",
-        description: `${droppedFile.name} is ready for analysis.`,
-      });
+  const getPriorityColor = (type: string) => {
+    switch (type) {
+      case 'high': return 'bg-red-100 text-red-800';
+      case 'medium': return 'bg-yellow-100 text-yellow-800';
+      case 'low': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-600";
-    if (score >= 60) return "text-yellow-600";
-    return "text-red-600";
-  };
-
-  const getScoreIcon = (score: number) => {
-    if (score >= 80) return <CheckCircle className="h-5 w-5 text-green-600" />;
-    if (score >= 60) return <AlertCircle className="h-5 w-5 text-yellow-600" />;
-    return <AlertCircle className="h-5 w-5 text-red-600" />;
+  const getPriorityIcon = (type: string) => {
+    switch (type) {
+      case 'high': return <XCircle className="h-4 w-4" />;
+      case 'medium': return <AlertCircle className="h-4 w-4" />;
+      case 'low': return <CheckCircle className="h-4 w-4" />;
+      default: return null;
+    }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4">
+      <div className="bg-white shadow-sm">
+        <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Button asChild variant="ghost" size="sm">
-                <Link to="/dashboard">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Dashboard
-                </Link>
-              </Button>
+              <Link to="/dashboard" className="flex items-center text-gray-600 hover:text-blue-600">
+                <ArrowLeft className="h-5 w-5 mr-2" />
+                Back to Dashboard
+              </Link>
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-                  <Target className="h-5 w-5 text-white" />
-                </div>
+                <FileText className="h-6 w-6 text-blue-600" />
                 <h1 className="text-2xl font-bold text-gray-900">Resume Analyzer</h1>
               </div>
             </div>
+            <div className="flex items-center space-x-4">
+              <Link to="/resume-builder">
+                <Button variant="outline" size="sm">
+                  Go to Resume Builder
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
-      </header>
+      </div>
 
-      <div className="container mx-auto px-4 py-8">
-        {!analysisResult ? (
-          // Upload Section
-          <div className="max-w-2xl mx-auto">
-            <Card className="animate-fade-in">
-              <CardHeader className="text-center">
-                <CardTitle className="text-3xl font-bold">Analyze Your Resume</CardTitle>
-                <CardDescription className="text-lg">
-                  Get detailed feedback and scoring to improve your resume's effectiveness
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div
-                  className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors cursor-pointer"
-                  onDragOver={handleDragOver}
-                  onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-lg font-medium text-gray-700 mb-2">
-                    {file ? file.name : "Drop your resume here or click to browse"}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Supports PDF files up to 10MB
-                  </p>
-                  <input
-                    ref={fileInputRef}
+      <div className="container mx-auto px-6 py-8">
+        <div className="max-w-4xl mx-auto space-y-8">
+          {/* Upload Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Upload Your Resume</CardTitle>
+              <CardDescription>
+                Upload your resume in PDF format for comprehensive analysis and improvement suggestions.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="resume-upload">Select Resume File</Label>
+                  <Input
+                    id="resume-upload"
                     type="file"
                     accept=".pdf"
                     onChange={handleFileSelect}
-                    className="hidden"
+                    className="cursor-pointer"
                   />
                 </div>
-
-                {file && (
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <FileText className="h-5 w-5 text-blue-600" />
-                        <span className="font-medium">{file.name}</span>
+                
+                {selectedFile && (
+                  <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <FileText className="h-8 w-8 text-blue-600" />
+                      <div>
+                        <p className="font-medium text-gray-900">{selectedFile.name}</p>
+                        <p className="text-sm text-gray-500">
+                          {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setFile(null)}
-                      >
-                        Remove
-                      </Button>
                     </div>
+                    <Button onClick={handleAnalyze} disabled={analyzing}>
+                      {analyzing ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Analyzing...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Analyze Resume
+                        </>
+                      )}
+                    </Button>
                   </div>
                 )}
+              </div>
+            </CardContent>
+          </Card>
 
-                <Button
-                  onClick={handleAnalyze}
-                  disabled={!file || analyzing}
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 py-3 text-lg"
-                >
-                  {analyzing ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                      Analyzing Resume...
-                    </>
-                  ) : (
-                    <>
-                      <Target className="h-5 w-5 mr-2" />
-                      Analyze Resume
-                    </>
-                  )}
-                </Button>
-
-                {analyzing && (
-                  <div className="space-y-2">
-                    <Progress value={33} className="w-full" />
-                    <p className="text-center text-sm text-gray-600">
-                      Analyzing content and structure...
+          {/* Analysis Results */}
+          {analysis && (
+            <div className="space-y-6">
+              {/* Overall Score */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Analysis Results</CardTitle>
+                    <CardDescription>
+                      Comprehensive analysis of your resume with actionable insights
+                    </CardDescription>
+                  </div>
+                  <Button onClick={downloadAnalysisReport} variant="outline" size="sm">
+                    <Download className="h-4 w-4 mr-2" />
+                    Download Report
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center mb-6">
+                    <div className="text-4xl font-bold text-blue-600 mb-2">
+                      {analysis.scores.overall}/100
+                    </div>
+                    <p className="text-gray-600 max-w-2xl mx-auto">
+                      {analysis.overallFeedback}
                     </p>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        ) : (
-          // Results Section
-          <div className="space-y-8 animate-fade-in">
-            <div className="text-center">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">Analysis Results</h2>
-              <div className="flex items-center justify-center space-x-2">
-                <div className={`text-4xl font-bold ${getScoreColor(analysisResult.score)}`}>
-                  {analysisResult.score}/100
-                </div>
-                {getScoreIcon(analysisResult.score)}
-              </div>
-            </div>
 
-            <div className="grid lg:grid-cols-2 gap-8">
-              {/* Score Breakdown */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Target className="h-5 w-5 mr-2" />
-                    Section Scores
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {Object.entries(analysisResult.sections).map(([section, data]: [string, any]) => (
-                    <div key={section} className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="font-medium capitalize">{section}</span>
-                        <span className={`font-bold ${getScoreColor(data.score)}`}>
-                          {data.score}/100
-                        </span>
-                      </div>
-                      <Progress value={data.score} className="w-full" />
-                      <p className="text-sm text-gray-600">{data.feedback}</p>
-                    </div>
-                  ))}
+                  {/* Detailed Scores */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {Object.entries(analysis.scores).map(([key, value]) => {
+                      if (key === 'overall') return null;
+                      const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                      return (
+                        <div key={key} className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium">{label}</span>
+                            <span className="text-sm text-gray-600">{value}/100</span>
+                          </div>
+                          <Progress value={value} className="h-2" />
+                        </div>
+                      );
+                    })}
+                  </div>
                 </CardContent>
               </Card>
 
-              {/* Strengths & Improvements */}
-              <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center text-green-600">
-                      <CheckCircle className="h-5 w-5 mr-2" />
-                      Strengths
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2">
-                      {analysisResult.strengths.map((strength: string, index: number) => (
-                        <li key={index} className="flex items-start space-x-2">
-                          <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                          <span className="text-sm">{strength}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
+              {/* Improvement Suggestions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Improvement Suggestions</CardTitle>
+                  <CardDescription>
+                    Prioritized recommendations to enhance your resume
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {analysis.suggestions.map((category: any, index: number) => (
+                      <div key={index} className="space-y-3">
+                        <div className="flex items-center space-x-2">
+                          {getPriorityIcon(category.type)}
+                          <h3 className="font-semibold text-lg">{category.category}</h3>
+                          <Badge className={getPriorityColor(category.type)}>
+                            {category.type.toUpperCase()} PRIORITY
+                          </Badge>
+                        </div>
+                        <div className="space-y-2">
+                          {category.items.map((item: string, itemIndex: number) => (
+                            <div key={itemIndex} className="flex items-start space-x-2 text-sm">
+                              <span className="text-blue-600 mt-1">•</span>
+                              <span>{item}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center text-orange-600">
-                      <Info className="h-5 w-5 mr-2" />
-                      Suggested Improvements
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2">
-                      {analysisResult.improvements.map((improvement: string, index: number) => (
-                        <li key={index} className="flex items-start space-x-2">
-                          <Info className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
-                          <span className="text-sm">{improvement}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
+              {/* Keyword Analysis */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Keyword Analysis</CardTitle>
+                  <CardDescription>
+                    Keywords found, missing, and recommended for better ATS compatibility
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="font-medium text-green-800 mb-3 flex items-center">
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Found Keywords
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {analysis.keywordAnalysis.found.map((keyword: string, index: number) => (
+                          <Badge key={index} variant="secondary" className="bg-green-100 text-green-800">
+                            {keyword}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
 
-            {/* Action Buttons */}
-            <div className="flex justify-center space-x-4">
-              <Button
-                onClick={() => {
-                  setAnalysisResult(null);
-                  setFile(null);
-                }}
-                variant="outline"
-                className="px-6"
-              >
-                Analyze Another Resume
-              </Button>
-              <Button
-                className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 px-6"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Download Report
-              </Button>
-              <Button asChild className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-6">
-                <Link to="/resume-builder">
-                  Improve with Builder
-                </Link>
-              </Button>
+                    <div>
+                      <h4 className="font-medium text-red-800 mb-3 flex items-center">
+                        <XCircle className="h-4 w-4 mr-2" />
+                        Missing Important Keywords
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {analysis.keywordAnalysis.missing.map((keyword: string, index: number) => (
+                          <Badge key={index} variant="secondary" className="bg-red-100 text-red-800">
+                            {keyword}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="font-medium text-blue-800 mb-3 flex items-center">
+                        <AlertCircle className="h-4 w-4 mr-2" />
+                        Recommended Keywords
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {analysis.keywordAnalysis.recommended.map((keyword: string, index: number) => (
+                          <Badge key={index} variant="secondary" className="bg-blue-100 text-blue-800">
+                            {keyword}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
