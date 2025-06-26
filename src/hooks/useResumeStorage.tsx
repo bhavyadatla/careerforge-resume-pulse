@@ -67,7 +67,7 @@ export const useResumeStorage = () => {
         .select('*')
         .eq('user_id', user.id)
         .eq('type', 'resume')
-        .order('created_at', { ascending: false });
+        .order('uploaded_at', { ascending: false });
 
       if (error) throw error;
 
@@ -86,6 +86,11 @@ export const useResumeStorage = () => {
       setResumes(formattedResumes);
     } catch (error: any) {
       console.error('Error loading resumes:', error);
+      toast({
+        title: 'Error Loading Resumes',
+        description: error.message,
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
