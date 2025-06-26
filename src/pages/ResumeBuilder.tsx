@@ -19,32 +19,50 @@ const templates = [
   {
     id: "modern",
     name: "Modern",
-    description: "Clean and modern design",
+    description: "Clean and modern design with blue accents",
+    preview: "Blue gradient header, professional layout"
   },
   {
     id: "professional",
     name: "Professional",
     description: "Classic and professional layout",
+    preview: "Traditional serif fonts, conservative styling"
   },
   {
     id: "creative",
     name: "Creative",
-    description: "Unique and creative design",
+    description: "Unique and creative design with purple gradients",
+    preview: "Purple-pink gradients, creative borders"
   },
   {
     id: "minimal",
     name: "Minimal",
     description: "Simple and minimal style",
+    preview: "Clean lines, minimal decoration, light fonts"
   },
   {
     id: "executive",
     name: "Executive",
-    description: "Elegant and executive look",
+    description: "Elegant and executive look with dark theme",
+    preview: "Dark background, premium appearance"
   },
   {
     id: "tech",
     name: "Tech",
     description: "Modern and tech-focused design",
+    preview: "Green accents, monospace fonts, tech style"
+  },
+  {
+    id: "elegant",
+    name: "Elegant",
+    description: "Sophisticated rose-themed design",
+    preview: "Rose gradients, serif fonts, elegant styling"
+  },
+  {
+    id: "bold",
+    name: "Bold",
+    description: "Strong black and white contrast",
+    preview: "High contrast, bold typography, striking design"
   },
 ];
 
@@ -228,10 +246,10 @@ const ResumeBuilder = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Choose Template</CardTitle>
-                <CardDescription>Select a professional template for your resume</CardDescription>
+                <CardDescription>Select a professional template for your resume - each has a unique visual style</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {templates.map((template) => (
                     <div
                       key={template.id}
@@ -243,8 +261,21 @@ const ResumeBuilder = () => {
                       onClick={() => setSelectedTemplate(template.id)}
                     >
                       <div className="text-center">
-                        <div className="w-full h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded mb-3 flex items-center justify-center">
-                          <FileText className="h-8 w-8 text-gray-400" />
+                        <div className={`w-full h-24 rounded mb-3 flex items-center justify-center text-xs p-2 ${
+                          template.id === 'modern' ? 'bg-gradient-to-br from-blue-100 to-blue-200 text-blue-800' :
+                          template.id === 'professional' ? 'bg-gray-100 text-gray-700 border border-gray-300' :
+                          template.id === 'creative' ? 'bg-gradient-to-br from-purple-100 to-pink-100 text-purple-800' :
+                          template.id === 'minimal' ? 'bg-white border border-gray-200 text-gray-600' :
+                          template.id === 'executive' ? 'bg-gradient-to-br from-gray-800 to-gray-900 text-white' :
+                          template.id === 'tech' ? 'bg-gradient-to-br from-green-100 to-blue-100 text-green-800 font-mono' :
+                          template.id === 'elegant' ? 'bg-gradient-to-br from-rose-100 to-orange-100 text-rose-800' :
+                          template.id === 'bold' ? 'bg-black text-white font-bold' :
+                          'bg-gradient-to-br from-gray-100 to-gray-200 text-gray-600'
+                        }`}>
+                          <div className="text-center">
+                            <FileText className="h-6 w-6 mx-auto mb-1" />
+                            <div className="text-xs">{template.preview}</div>
+                          </div>
                         </div>
                         <h3 className="font-medium text-sm">{template.name}</h3>
                         <p className="text-xs text-gray-500 mt-1">{template.description}</p>
