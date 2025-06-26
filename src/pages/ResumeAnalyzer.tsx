@@ -1,68 +1,111 @@
-
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { Link } from "react-router-dom";
-import { FileText, Upload, Target, AlertCircle, CheckCircle, ArrowLeft, TrendingUp } from "lucide-react";
+import { Link, Navigate } from "react-router-dom";
+import { FileText, Upload, ArrowLeft, Download, Target, CheckCircle, AlertCircle, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 const ResumeAnalyzer = () => {
+  const { user, loading } = useAuth();
   const [file, setFile] = useState<File | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setFile(e.target.files[0]);
+  if (loading) {
+    return <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div>Loading...</div>
+    </div>;
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      if (selectedFile.type === "application/pdf" || selectedFile.name.endsWith('.pdf')) {
+        setFile(selectedFile);
+        toast({
+          title: "File Selected",
+          description: `${selectedFile.name} is ready for analysis.`,
+        });
+      } else {
+        toast({
+          title: "Invalid File Type",
+          description: "Please select a PDF file.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
-  const handleAnalyze = async () => {
-    if (!file) {
-      toast({
-        title: "No File Selected",
-        description: "Please select a resume file to analyze.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsAnalyzing(true);
+  const handleAnalyze = () => {
+    if (!file) return;
     
+    setAnalyzing(true);
     // Simulate analysis
     setTimeout(() => {
       setAnalysisResult({
-        overallScore: 87,
-        sections: {
-          format: 92,
-          content: 85,
-          keywords: 78,
-          experience: 90,
-          skills: 88
-        },
-        improvements: [
-          "Add more industry-specific keywords",
-          "Include quantifiable achievements",
-          "Improve section formatting consistency",
-          "Add relevant technical skills"
-        ],
+        score: 87,
         strengths: [
-          "Strong professional experience section",
-          "Clear and readable format",
-          "Good use of action verbs",
-          "Appropriate length and structure"
-        ]
+          "Strong technical skills section",
+          "Relevant work experience",
+          "Clear and concise formatting",
+          "Good use of action verbs"
+        ],
+        improvements: [
+          "Add more quantifiable achievements",
+          "Include a professional summary",
+          "Consider adding relevant certifications",
+          "Optimize for ATS systems"
+        ],
+        sections: {
+          contact: { score: 95, feedback: "Complete and professional" },
+          summary: { score: 70, feedback: "Could be more compelling" },
+          experience: { score: 90, feedback: "Well-structured with good details" },
+          education: { score: 85, feedback: "Relevant and properly formatted" },
+          skills: { score: 88, feedback: "Good technical coverage" }
+        }
       });
-      setIsAnalyzing(false);
+      setAnalyzing(false);
       toast({
         title: "Analysis Complete!",
         description: "Your resume has been analyzed successfully.",
       });
     }, 3000);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const droppedFile = e.dataTransfer.files[0];
+    if (droppedFile && droppedFile.type === "application/pdf") {
+      setFile(droppedFile);
+      toast({
+        title: "File Dropped",
+        description: `${droppedFile.name} is ready for analysis.`,
+      });
+    }
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return "text-green-600";
+    if (score >= 60) return "text-yellow-600";
+    return "text-red-600";
+  };
+
+  const getScoreIcon = (score: number) => {
+    if (score >= 80) return <CheckCircle className="h-5 w-5 text-green-600" />;
+    if (score >= 60) return <AlertCircle className="h-5 w-5 text-yellow-600" />;
+    return <AlertCircle className="h-5 w-5 text-red-600" />;
   };
 
   return (
@@ -79,7 +122,7 @@ const ResumeAnalyzer = () => {
                 </Link>
               </Button>
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
                   <Target className="h-5 w-5 text-white" />
                 </div>
                 <h1 className="text-2xl font-bold text-gray-900">Resume Analyzer</h1>
@@ -91,181 +134,186 @@ const ResumeAnalyzer = () => {
 
       <div className="container mx-auto px-4 py-8">
         {!analysisResult ? (
-          /* Upload Section */
+          // Upload Section
           <div className="max-w-2xl mx-auto">
-            <div className="text-center mb-8 animate-fade-in">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">
-                Analyze Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600">Resume</span>
-              </h2>
-              <p className="text-xl text-gray-600">
-                Get instant feedback and improve your resume with our AI-powered analysis tool.
-              </p>
-            </div>
-
-            <Card className="shadow-lg">
+            <Card className="animate-fade-in">
               <CardHeader className="text-center">
-                <CardTitle className="text-2xl">Upload Your Resume</CardTitle>
-                <CardDescription>
-                  Supported formats: PDF, DOC, DOCX (Max size: 10MB)
+                <CardTitle className="text-3xl font-bold">Analyze Your Resume</CardTitle>
+                <CardDescription className="text-lg">
+                  Get detailed feedback and scoring to improve your resume's effectiveness
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="resume">Resume File</Label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-500 transition-colors">
-                    <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <Input
-                      id="resume"
-                      type="file"
-                      accept=".pdf,.doc,.docx"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
-                    <Label htmlFor="resume" className="cursor-pointer">
-                      <span className="text-blue-600 hover:underline">Click to upload</span> or drag and drop
-                    </Label>
-                    {file && (
-                      <p className="mt-2 text-sm text-gray-600">
-                        Selected: {file.name}
-                      </p>
-                    )}
-                  </div>
+                <div
+                  className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors cursor-pointer"
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-lg font-medium text-gray-700 mb-2">
+                    {file ? file.name : "Drop your resume here or click to browse"}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Supports PDF files up to 10MB
+                  </p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
                 </div>
 
-                <Button 
-                  onClick={handleAnalyze} 
-                  disabled={isAnalyzing}
-                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 transform hover:scale-105 transition-all duration-200"
+                {file && (
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <FileText className="h-5 w-5 text-blue-600" />
+                        <span className="font-medium">{file.name}</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setFile(null)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                <Button
+                  onClick={handleAnalyze}
+                  disabled={!file || analyzing}
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 py-3 text-lg"
                 >
-                  {isAnalyzing ? (
+                  {analyzing ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
                       Analyzing Resume...
                     </>
                   ) : (
                     <>
-                      <Target className="h-4 w-4 mr-2" />
+                      <Target className="h-5 w-5 mr-2" />
                       Analyze Resume
                     </>
                   )}
                 </Button>
 
-                {isAnalyzing && (
+                {analyzing && (
                   <div className="space-y-2">
-                    <div className="flex justify-between text-sm text-gray-600">
-                      <span>Analyzing your resume...</span>
-                      <span>Please wait</span>
-                    </div>
-                    <Progress value={75} className="w-full" />
+                    <Progress value={33} className="w-full" />
+                    <p className="text-center text-sm text-gray-600">
+                      Analyzing content and structure...
+                    </p>
                   </div>
                 )}
               </CardContent>
             </Card>
           </div>
         ) : (
-          /* Results Section */
+          // Results Section
           <div className="space-y-8 animate-fade-in">
             <div className="text-center">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">
-                Analysis <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600">Complete</span>
-              </h2>
-              <p className="text-xl text-gray-600">
-                Here's your detailed resume analysis and improvement suggestions.
-              </p>
-            </div>
-
-            {/* Overall Score */}
-            <Card className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
-              <CardContent className="p-8 text-center">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center">
-                    <span className="text-3xl font-bold">{analysisResult.overallScore}%</span>
-                  </div>
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">Analysis Results</h2>
+              <div className="flex items-center justify-center space-x-2">
+                <div className={`text-4xl font-bold ${getScoreColor(analysisResult.score)}`}>
+                  {analysisResult.score}/100
                 </div>
-                <h3 className="text-2xl font-bold mb-2">Overall Score</h3>
-                <p className="text-green-100">
-                  Your resume is performing well! Check the detailed breakdown below.
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Detailed Scores */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Object.entries(analysisResult.sections).map(([key, score]) => (
-                <Card key={key} className="hover:shadow-lg transition-shadow duration-300">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-semibold text-lg capitalize">{key}</h4>
-                      <TrendingUp className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Score</span>
-                        <span className="font-medium">{score}%</span>
-                      </div>
-                      <Progress value={score as number} className="w-full" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                {getScoreIcon(analysisResult.score)}
+              </div>
             </div>
 
             <div className="grid lg:grid-cols-2 gap-8">
-              {/* Improvements */}
+              {/* Score Breakdown */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">
-                    <AlertCircle className="h-5 w-5 mr-2 text-orange-600" />
-                    Areas for Improvement
+                    <Target className="h-5 w-5 mr-2" />
+                    Section Scores
                   </CardTitle>
-                  <CardDescription>
-                    Focus on these areas to boost your resume score.
-                  </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {analysisResult.improvements.map((improvement: string, index: number) => (
-                      <div key={index} className="flex items-start space-x-3 p-3 bg-orange-50 rounded-lg">
-                        <AlertCircle className="h-5 w-5 text-orange-600 mt-0.5" />
-                        <span className="text-gray-700">{improvement}</span>
+                <CardContent className="space-y-4">
+                  {Object.entries(analysisResult.sections).map(([section, data]: [string, any]) => (
+                    <div key={section} className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium capitalize">{section}</span>
+                        <span className={`font-bold ${getScoreColor(data.score)}`}>
+                          {data.score}/100
+                        </span>
                       </div>
-                    ))}
-                  </div>
+                      <Progress value={data.score} className="w-full" />
+                      <p className="text-sm text-gray-600">{data.feedback}</p>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
 
-              {/* Strengths */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <CheckCircle className="h-5 w-5 mr-2 text-green-600" />
-                    Your Strengths
-                  </CardTitle>
-                  <CardDescription>
-                    These are the strong points in your resume.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {analysisResult.strengths.map((strength: string, index: number) => (
-                      <div key={index} className="flex items-start space-x-3 p-3 bg-green-50 rounded-lg">
-                        <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
-                        <span className="text-gray-700">{strength}</span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Strengths & Improvements */}
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-green-600">
+                      <CheckCircle className="h-5 w-5 mr-2" />
+                      Strengths
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2">
+                      {analysisResult.strengths.map((strength: string, index: number) => (
+                        <li key={index} className="flex items-start space-x-2">
+                          <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                          <span className="text-sm">{strength}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-orange-600">
+                      <Info className="h-5 w-5 mr-2" />
+                      Suggested Improvements
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2">
+                      {analysisResult.improvements.map((improvement: string, index: number) => (
+                        <li key={index} className="flex items-start space-x-2">
+                          <Info className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                          <span className="text-sm">{improvement}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button onClick={() => setAnalysisResult(null)} variant="outline" className="transform hover:scale-105 transition-all duration-200">
+            <div className="flex justify-center space-x-4">
+              <Button
+                onClick={() => {
+                  setAnalysisResult(null);
+                  setFile(null);
+                }}
+                variant="outline"
+                className="px-6"
+              >
                 Analyze Another Resume
               </Button>
-              <Button asChild className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transform hover:scale-105 transition-all duration-200">
+              <Button
+                className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 px-6"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download Report
+              </Button>
+              <Button asChild className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-6">
                 <Link to="/resume-builder">
-                  Build New Resume
+                  Improve with Builder
                 </Link>
               </Button>
             </div>

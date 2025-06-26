@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,12 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Link } from "react-router-dom";
-import { FileText, Plus, Trash2, ArrowLeft, Download, Eye } from "lucide-react";
+import { Link, Navigate } from "react-router-dom";
+import { FileText, Plus, Trash2, ArrowLeft, Download, Eye, Layout } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 const ResumeBuilder = () => {
-  const [activeSection, setActiveSection] = useState("personal");
+  const { user, loading } = useAuth();
+  const [activeSection, setActiveSection] = useState("templates");
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [resumeData, setResumeData] = useState({
     personal: {
       firstName: "",
@@ -42,7 +44,63 @@ const ResumeBuilder = () => {
   });
   const { toast } = useToast();
 
+  if (loading) {
+    return <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div>Loading...</div>
+    </div>;
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const templates = [
+    {
+      id: "modern",
+      name: "Modern Professional",
+      description: "Clean and contemporary design perfect for tech and creative roles",
+      preview: "🎨",
+      color: "bg-blue-500"
+    },
+    {
+      id: "classic",
+      name: "Classic Executive",
+      description: "Traditional format ideal for corporate and executive positions",
+      preview: "📋",
+      color: "bg-gray-600"
+    },
+    {
+      id: "creative",
+      name: "Creative Designer",
+      description: "Bold and artistic layout for designers and creative professionals",
+      preview: "🎭",
+      color: "bg-purple-500"
+    },
+    {
+      id: "minimal",
+      name: "Minimal Clean",
+      description: "Simple and elegant design that focuses on content",
+      preview: "📄",
+      color: "bg-green-500"
+    },
+    {
+      id: "tech",
+      name: "Tech Specialist",
+      description: "Developer-focused template with technical skills emphasis",
+      preview: "💻",
+      color: "bg-indigo-500"
+    },
+    {
+      id: "academic",
+      name: "Academic Research",
+      description: "Structured format for researchers and academic professionals",
+      preview: "🎓",
+      color: "bg-orange-500"
+    }
+  ];
+
   const sections = [
+    { id: "templates", label: "Templates", icon: "📋" },
     { id: "personal", label: "Personal Info", icon: "👤" },
     { id: "experience", label: "Experience", icon: "💼" },
     { id: "education", label: "Education", icon: "🎓" },
@@ -109,6 +167,15 @@ const ResumeBuilder = () => {
     });
   };
 
+  const selectTemplate = (templateId: string) => {
+    setSelectedTemplate(templateId);
+    setActiveSection("personal");
+    toast({
+      title: "Template Selected!",
+      description: "Now let's fill in your information.",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
@@ -164,6 +231,7 @@ const ResumeBuilder = () => {
                     variant={activeSection === section.id ? "default" : "ghost"}
                     className="w-full justify-start"
                     onClick={() => setActiveSection(section.id)}
+                    disabled={section.id !== "templates" && !selectedTemplate}
                   >
                     <span className="mr-2">{section.icon}</span>
                     {section.label}
@@ -175,7 +243,54 @@ const ResumeBuilder = () => {
 
           {/* Main Content */}
           <div className="lg:col-span-3">
-            {activeSection === "personal" && (
+            {activeSection === "templates" && (
+              <Card className="animate-fade-in">
+                <CardHeader>
+                  <CardTitle className="text-2xl flex items-center">
+                    <Layout className="h-6 w-6 mr-2" />
+                    Choose Your Template
+                  </CardTitle>
+                  <CardDescription>
+                    Select a professional template that matches your career style
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {templates.map((template) => (
+                      <Card
+                        key={template.id}
+                        className={`cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-105 ${
+                          selectedTemplate === template.id 
+                            ? 'ring-2 ring-blue-500 shadow-lg' 
+                            : 'hover:shadow-md'
+                        }`}
+                        onClick={() => selectTemplate(template.id)}
+                      >
+                        <CardContent className="p-6">
+                          <div className={`w-16 h-20 ${template.color} rounded-lg flex items-center justify-center text-2xl mb-4 mx-auto`}>
+                            {template.preview}
+                          </div>
+                          <h3 className="font-semibold text-lg mb-2 text-center">
+                            {template.name}
+                          </h3>
+                          <p className="text-sm text-gray-600 text-center mb-4">
+                            {template.description}
+                          </p>
+                          <Button 
+                            className="w-full" 
+                            variant={selectedTemplate === template.id ? "default" : "outline"}
+                          >
+                            {selectedTemplate === template.id ? "Selected" : "Select Template"}
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {activeSection === "personal" && selectedTemplate && (
               <Card className="animate-fade-in">
                 <CardHeader>
                   <CardTitle className="text-2xl">Personal Information</CardTitle>
@@ -248,7 +363,7 @@ const ResumeBuilder = () => {
               </Card>
             )}
 
-            {activeSection === "experience" && (
+            {activeSection === "experience" && selectedTemplate && (
               <Card className="animate-fade-in">
                 <CardHeader>
                   <div className="flex justify-between items-center">
@@ -308,7 +423,7 @@ const ResumeBuilder = () => {
               </Card>
             )}
 
-            {activeSection === "education" && (
+            {activeSection === "education" && selectedTemplate && (
               <Card className="animate-fade-in">
                 <CardHeader>
                   <div className="flex justify-between items-center">
@@ -369,7 +484,7 @@ const ResumeBuilder = () => {
               </Card>
             )}
 
-            {activeSection === "skills" && (
+            {activeSection === "skills" && selectedTemplate && (
               <Card className="animate-fade-in">
                 <CardHeader>
                   <div className="flex justify-between items-center">
